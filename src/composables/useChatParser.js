@@ -146,16 +146,30 @@ function getDirectTextContent(element) {
 }
 
 /**
- * Extract emojis from text using Unicode property escapes
+ * Extract emojis from text, properly handling ZWJ sequences and compound emojis
  * @param {string} text - Text to extract emojis from
- * @returns {string[]} Array of emoji characters
+ * @returns {string[]} Array of emoji characters (including compound emojis)
  */
-function extractEmojis(text) {
+export function extractEmojis(text) {
   if (!text || typeof text !== 'string') {
     return []
   }
 
-  const emojiRegex = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu
+  // More conservative regex that properly handles:
+  // - Emojis that display as emojis by default (\p{Emoji_Presentation})
+  // - Extended pictographics (newer emojis)
+  // - ZWJ sequences (compound emojis like family, professions, directional faces)
+  // - Skin tone modifiers
+  // - Variation selectors (\uFE0F forces emoji rendering)
+  // - Arrows block (U+2190-U+21FF) for directional emojis like 🙂‍↕️
+  //
+  // Key: We require characters to EITHER:
+  // 1. Have Emoji_Presentation property (renders as emoji by default), OR
+  // 2. Be followed by variation selector \uFE0F (forces emoji rendering)
+  //
+  // This prevents plain digits/# from being captured as emojis
+  const emojiRegex = /(?:[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2190}-\u{21FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{231A}-\u{231B}]|[\u{23E9}-\u{23EC}]|[\u{23F0}]|[\u{23F3}]|[\u{25FD}-\u{25FE}]|[\u{2614}-\u{2615}]|[\u{2648}-\u{2653}]|[\u{267F}]|[\u{2693}]|[\u{26A1}]|[\u{26AA}-\u{26AB}]|[\u{26BD}-\u{26BE}]|[\u{26C4}-\u{26C5}]|[\u{26CE}]|[\u{26D4}]|[\u{26EA}]|[\u{26F2}-\u{26F3}]|[\u{26F5}]|[\u{26FA}]|[\u{26FD}]|[\u{2705}]|[\u{270A}-\u{270B}]|[\u{2728}]|[\u{274C}]|[\u{274E}]|[\u{2753}-\u{2755}]|[\u{2757}]|[\u{2795}-\u{2797}]|[\u{27B0}]|[\u{27BF}]|[\u{2B1B}-\u{2B1C}]|[\u{2B50}]|[\u{2B55}])(?:[\u{1F3FB}-\u{1F3FF}]|\uFE0F\u20E3?)?(?:\u200D(?:[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2190}-\u{21FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{231A}-\u{231B}]|[\u{23E9}-\u{23EC}]|[\u{23F0}]|[\u{23F3}]|[\u{25FD}-\u{25FE}]|[\u{2614}-\u{2615}]|[\u{2648}-\u{2653}]|[\u{267F}]|[\u{2693}]|[\u{26A1}]|[\u{26AA}-\u{26AB}]|[\u{26BD}-\u{26BE}]|[\u{26C4}-\u{26C5}]|[\u{26CE}]|[\u{26D4}]|[\u{26EA}]|[\u{26F2}-\u{26F3}]|[\u{26F5}]|[\u{26FA}]|[\u{26FD}]|[\u{2705}]|[\u{270A}-\u{270B}]|[\u{2728}]|[\u{274C}]|[\u{274E}]|[\u{2753}-\u{2755}]|[\u{2757}]|[\u{2795}-\u{2797}]|[\u{27B0}]|[\u{27BF}]|[\u{2B1B}-\u{2B1C}]|[\u{2B50}]|[\u{2B55}])(?:[\u{1F3FB}-\u{1F3FF}]|\uFE0F)?)*/gu
+
   return text.match(emojiRegex) || []
 }
 

@@ -158,6 +158,92 @@ We don't test:
 
 ---
 
+## User Configuration vs Hardcoded Values
+
+### Decision: User-Controlled Emoji Filtering
+
+**Date:** 2025-10-16
+
+### The Problem
+
+Some emojis appear in usernames (e.g., "Mike 🌹") and shouldn't count toward emoji statistics. Initially, we could hardcode these:
+
+```javascript
+// ❌ BAD: Hardcoded filtering
+function extractEmojis(text) {
+  const emojis = text.match(emojiRegex) || []
+  return emojis.filter(emoji => emoji !== '🌹') // Hardcoded!
+}
+```
+
+**Problems with this approach:**
+- Only works for this specific case
+- User has no control
+- Requires code changes for different usernames
+- Developer assumes what should be filtered
+
+### The Solution: User-Controlled Configuration
+
+Let users decide which emojis to ignore via a simple input field.
+
+**Benefits:**
+- Works for any username emoji
+- User has full control
+- No code changes needed for different cases
+- Respects user intent over developer assumptions
+
+### Implementation Architecture
+
+**1. State Management**
+```javascript
+const ignoredEmojis = ref(new Set()) // Reactive set of emojis to ignore
+```
+
+**2. User Interface**
+- Small, cute input box in "Emoji Usage Comparison" section
+- User types emojis to ignore (e.g., "🌹❤️")
+- Emojis are extracted from input and added to ignore set
+- Changes trigger immediate recalculation
+
+**3. Filtering Logic**
+```javascript
+function extractEmojis(text, ignoreSet = new Set()) {
+  const emojis = text.match(emojiRegex) || []
+  return emojis.filter(emoji => !ignoreSet.has(emoji))
+}
+```
+
+**4. Reactive Recalculation**
+- When `ignoredEmojis` changes
+- Refilter all message emojis
+- Recalculate statistics
+- UI updates automatically (Vue reactivity)
+
+### Why This Pattern Matters
+
+**User Configuration > Developer Hardcoding**
+
+Whenever you're tempted to hardcode a value, ask:
+- "Will this be different for other users?"
+- "Should users control this?"
+- "Am I making assumptions about user intent?"
+
+If yes to any, make it configurable.
+
+**Examples in this project:**
+- ✅ Emoji filtering - User controlled
+- ✅ Theme selection - User controlled
+- ✅ File upload - User controlled
+- ❌ CSS token values - Developer controlled (appropriate)
+- ❌ Parser selectors - Developer controlled (appropriate)
+
+### The Golden Rule
+
+**Make behavior configurable when it relates to user data or preferences.**
+**Make implementation details fixed when they're about "how" not "what".**
+
+---
+
 ## Future Sections
 
 - Component Architecture

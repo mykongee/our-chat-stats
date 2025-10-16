@@ -7,6 +7,8 @@ const selectedFile = ref(null)
 const parsedData = ref(null)
 const isParsingError = ref(null)
 const isParsing = ref(false)
+const ignoredEmojis = ref(new Set())
+const ignoreInput = ref('')
 
 async function handleFileSelected(file) {
   selectedFile.value = file
@@ -39,6 +41,63 @@ function getTopEmojisByUser(emojisByUser, limit = 5) {
       obj[emoji] = count
       return obj
     }, {})
+}
+
+function handleIgnoreInputChange() {
+  // Extract emojis from input (same regex as parser for consistency)
+  const emojiRegex = /(?:[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2190}-\u{21FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{231A}-\u{231B}]|[\u{23E9}-\u{23EC}]|[\u{23F0}]|[\u{23F3}]|[\u{25FD}-\u{25FE}]|[\u{2614}-\u{2615}]|[\u{2648}-\u{2653}]|[\u{267F}]|[\u{2693}]|[\u{26A1}]|[\u{26AA}-\u{26AB}]|[\u{26BD}-\u{26BE}]|[\u{26C4}-\u{26C5}]|[\u{26CE}]|[\u{26D4}]|[\u{26EA}]|[\u{26F2}-\u{26F3}]|[\u{26F5}]|[\u{26FA}]|[\u{26FD}]|[\u{2705}]|[\u{270A}-\u{270B}]|[\u{2728}]|[\u{274C}]|[\u{274E}]|[\u{2753}-\u{2755}]|[\u{2757}]|[\u{2795}-\u{2797}]|[\u{27B0}]|[\u{27BF}]|[\u{2B1B}-\u{2B1C}]|[\u{2B50}]|[\u{2B55}])(?:[\u{1F3FB}-\u{1F3FF}]|\uFE0F\u20E3?)?(?:\u200D(?:[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2190}-\u{21FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{231A}-\u{231B}]|[\u{23E9}-\u{23EC}]|[\u{23F0}]|[\u{23F3}]|[\u{25FD}-\u{25FE}]|[\u{2614}-\u{2615}]|[\u{2648}-\u{2653}]|[\u{267F}]|[\u{2693}]|[\u{26A1}]|[\u{26AA}-\u{26AB}]|[\u{26BD}-\u{26BE}]|[\u{26C4}-\u{26C5}]|[\u{26CE}]|[\u{26D4}]|[\u{26EA}]|[\u{26F2}-\u{26F3}]|[\u{26F5}]|[\u{26FA}]|[\u{26FD}]|[\u{2705}]|[\u{270A}-\u{270B}]|[\u{2728}]|[\u{274C}]|[\u{274E}]|[\u{2753}-\u{2755}]|[\u{2757}]|[\u{2795}-\u{2797}]|[\u{27B0}]|[\u{27BF}]|[\u{2B1B}-\u{2B1C}]|[\u{2B50}]|[\u{2B55}])(?:[\u{1F3FB}-\u{1F3FF}]|\uFE0F)?)*/gu
+  const emojis = ignoreInput.value.match(emojiRegex) || []
+
+  ignoredEmojis.value = new Set(emojis)
+
+  // Recalculate statistics
+  if (parsedData.value) {
+    recalculateStatistics()
+  }
+}
+
+function recalculateStatistics() {
+  if (!parsedData.value) return
+
+  const messageCountByUser = {}
+  const emojiCountByUser = {}
+  const totalEmojiCount = {}
+
+  for (const message of parsedData.value.messages) {
+    const sender = message.sender
+
+    // Count messages per user
+    messageCountByUser[sender] = (messageCountByUser[sender] || 0) + 1
+
+    // Filter emojis based on ignored set
+    const filteredEmojis = message.emojis.filter(emoji => !ignoredEmojis.value.has(emoji))
+
+    // Count emojis
+    if (!emojiCountByUser[sender]) {
+      emojiCountByUser[sender] = {}
+    }
+
+    for (const emoji of filteredEmojis) {
+      // Per-user emoji count
+      emojiCountByUser[sender][emoji] = (emojiCountByUser[sender][emoji] || 0) + 1
+
+      // Total emoji count
+      totalEmojiCount[emoji] = (totalEmojiCount[emoji] || 0) + 1
+    }
+  }
+
+  // Create sorted topEmojis array
+  const topEmojis = Object.entries(totalEmojiCount)
+    .map(([emoji, count]) => ({ emoji, count }))
+    .sort((a, b) => b.count - a.count)
+
+  // Update statistics
+  parsedData.value.statistics = {
+    messageCountByUser,
+    emojiCountByUser,
+    totalEmojiCount,
+    topEmojis,
+  }
 }
 </script>
 
@@ -84,6 +143,22 @@ function getTopEmojisByUser(emojisByUser, limit = 5) {
 
         <div class="result-card">
           <h2>Emoji Usage Comparison</h2>
+
+          <div class="ignore-emoji-input">
+            <label for="ignore-emojis">Ignore emojis (type emojis to exclude):</label>
+            <input
+              id="ignore-emojis"
+              v-model="ignoreInput"
+              @input="handleIgnoreInputChange"
+              type="text"
+              placeholder="🌹❤️✨"
+              class="emoji-input"
+            />
+            <p class="input-hint" v-if="ignoredEmojis.size > 0">
+              Ignoring: {{ Array.from(ignoredEmojis).join(' ') }}
+            </p>
+          </div>
+
           <div class="emoji-comparison">
             <div v-for="(emojisByUser, user) in parsedData.statistics.emojiCountByUser" :key="user" class="user-emoji-stats">
               <h3>{{ user }}</h3>
@@ -282,5 +357,46 @@ function getTopEmojisByUser(emojisByUser, limit = 5) {
   border-radius: var(--border-radius-lg);
   font-size: var(--font-size-md);
   color: var(--color-text-primary);
+}
+
+.ignore-emoji-input {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--color-surface-alt);
+  border-radius: var(--border-radius-sm);
+}
+
+.ignore-emoji-input label {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.emoji-input {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: var(--font-size-lg);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  transition: border-color var(--transition-fast);
+}
+
+.emoji-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.emoji-input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.6;
+}
+
+.input-hint {
+  margin: 0.5rem 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
 }
 </style>

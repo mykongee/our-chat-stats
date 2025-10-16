@@ -219,19 +219,75 @@ function parseMessage(node) {
 
 ### Emoji Detection Algorithm
 
-**Challenge:** Some emojis are single characters (👋), others are sequences (👨‍👩‍👧‍👦 = man + ZWJ + woman + ZWJ + girl + ZWJ + boy).
+**Challenge:** Emojis come in different forms:
+1. **Single characters** (👋)
+2. **ZWJ sequences** (👨‍👩‍👧‍👦 = man + ZWJ + woman + ZWJ + girl + ZWJ + boy)
+3. **Skin tone variants** (👨🏽‍💻 = person + skin tone modifier + ZWJ + laptop)
+4. **Directional variants** (🙂‍↕️ = face + ZWJ + arrow + variation selector)
 
-**Solution:** Use regex with Unicode property escapes:
+**Initial Naive Approach (INCORRECT):**
+```javascript
+// ❌ This breaks compound emojis into pieces
+const emojiRegex = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu
+```
+
+**Problem:** This extracts individual Unicode characters, not complete emojis. For example:
+- 🙂‍↕️ gets split into: 🙂, ↕, and variation selector
+- Result: The arrow (↕) is counted separately
+
+**Correct Solution: ZWJ-Aware Regex**
 
 ```javascript
 function extractEmojis(text) {
-  // Modern approach (ES2018+)
-  const emojiRegex = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu
+  // Enhanced regex to match complete emoji sequences
+  const emojiRegex = /(?:\p{Emoji}(?:\p{Emoji_Modifier}|\uFE0F\u20E3?|[\u{E0020}-\u{E007E}]+\u{E007F})?)(?:\u200D(?:\p{Emoji}(?:\p{Emoji_Modifier}|\uFE0F\u20E3?|[\u{E0020}-\u{E007E}]+\u{E007F})?))*(?:\p{Emoji_Presentation})?/gu
   return text.match(emojiRegex) || []
 }
 ```
 
-**Analogy:** Like using a magnet that only attracts specific types of metal. The regex "attracts" characters that have the emoji property, ignoring regular letters.
+**How This Works:**
+
+1. **Base Emoji**: `\p{Emoji}` - Matches any emoji character
+2. **Optional Modifiers**:
+   - `\p{Emoji_Modifier}` - Skin tone modifiers (🏽, 🏿, etc.)
+   - `\uFE0F` - Variation selector (forces emoji rendering)
+   - Tag sequences for flags
+3. **ZWJ Sequences**: `\u200D` - Zero-Width Joiner connects multiple emojis
+4. **Repetition**: `(?:...)*` - Captures chains of ZWJ-connected emojis
+
+**Examples Handled:**
+- 👋 → Single emoji (works)
+- 👨‍👩‍👧‍👦 → Family (4 emojis + 3 ZWJ) → Captured as ONE emoji
+- 🙂‍↕️ → Directional face (emoji + ZWJ + arrow) → Captured as ONE emoji
+- 👨🏽‍💻 → Person at computer with skin tone → Captured as ONE emoji
+
+**Analogy:** Like reading words instead of individual letters. We don't want to split "hello" into h-e-l-l-o; similarly, we don't want to split 👨‍👩‍👧‍👦 into individual family members.
+
+**Technical Details:**
+
+Unicode defines several types of emoji compositions:
+- **Emoji Modifier Sequences**: Base + skin tone (👋🏽)
+- **Emoji ZWJ Sequences**: Multiple emojis joined with U+200D (👨‍👩‍👧‍👦)
+- **Emoji Flag Sequences**: Regional indicators (🇺🇸 = 🇺 + 🇸)
+- **Emoji Keycap Sequences**: Digit + variation + keycap (1️⃣)
+- **Emoji Tag Sequences**: For flags like 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+
+Our regex handles all of these by:
+1. Matching the full sequence as one unit
+2. Preserving ZWJ connections
+3. Including variation selectors and modifiers
+
+**Why This Matters:**
+
+Without proper ZWJ handling:
+- ❌ 🙂‍↕️ becomes 🙂, ↕ (arrow counted separately)
+- ❌ 👨‍👩‍👧‍👦 becomes 👨, 👩, 👧, 👦 (inflated counts)
+- ❌ Stats show meaningless fragments
+
+With ZWJ handling:
+- ✅ 🙂‍↕️ counted as one directional face emoji
+- ✅ 👨‍👩‍👧‍👦 counted as one family emoji
+- ✅ Accurate, meaningful statistics
 
 ### Counting Strategy
 
