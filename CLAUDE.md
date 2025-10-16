@@ -112,6 +112,71 @@ When you're about to add a feature, ask:
 
 ---
 
+## 🏗️ ARCHITECTURAL APPROACH: TOP-DOWN DEVELOPMENT
+
+**Always start with architecture, go from top-down. Build the foundation first.**
+
+### The Priority Principle
+
+When building a feature, identify the **core foundation** and build that first, before any derivative features.
+
+**Example: Chat Parser First**
+- ❌ DON'T: Build emoji counter → Build parser → Realize parser doesn't work as expected
+- ✅ DO: Build parser → Test parser → Then build emoji counter
+
+### Why This Matters
+
+**Foundation features enable everything else:**
+- Without the parser, we have no data
+- Without data, we can't count emojis
+- Without emoji counts, we can't display statistics
+
+**Top-down prevents:**
+- Building on unstable foundations
+- Rework when core assumptions change
+- Wasted effort on features that can't work yet
+
+### The Development Order
+
+1. **Core/Foundation** - The thing everything else depends on
+2. **Derived Features** - Things that use the foundation
+3. **UI/Polish** - Things that present the data
+
+**For Our Chat Stats App:**
+```
+Level 1 (Core):          Parser
+Level 2 (Derived):       Emoji counter, message counter, stats calculator
+Level 3 (Presentation):  Charts, visualizations, UI components
+```
+
+### In Practice
+
+**Before implementing anything, ask:**
+1. "What does this feature depend on?"
+2. "Does that dependency exist and work?"
+3. "If no, build the dependency first"
+
+**Example decision tree:**
+```
+Want to: Display emoji statistics
+↓
+Needs: Emoji counts
+↓
+Needs: Parsed messages
+↓
+Needs: Parser
+↓
+Start here: Build parser first
+```
+
+### Key Insight
+
+**The parser is the main priority.** Without it, nothing else works. Get the parser working correctly before building analysis features.
+
+This isn't about avoiding complexity - it's about building complexity in the right order.
+
+---
+
 ## Design System Architecture
 
 ### Philosophy
