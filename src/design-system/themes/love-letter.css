@@ -1,0 +1,56 @@
+/* Love Letter Theme - Romantic aesthetic with rose-inspired softness */
+[data-theme="love-letter"] {
+  /* Colors */
+  --color-primary: #FFB6C1;
+  --color-secondary: #E6A8D7;
+  --color-background: #FFF9FB;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #FFF5F7;
+  --color-text-primary: #4A4A4A;
+  --color-text-secondary: #8B8B8B;
+  --color-border: #FFE4E9;
+  --color-success: #B8E6B8;
+  --color-error: #FFB4B4;
+  --color-warning: #FFE4B5;
+  --color-accent: #FFC0D9;
+
+  /* Typography */
+  --font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-heading: 'Playfair Display', Georgia, serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 2rem;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Spacing */
+  --spacing-unit: 4px;
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 0.75rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+
+  /* Effects */
+  --border-radius-sm: 8px;
+  --border-radius-md: 12px;
+  --border-radius-lg: 16px;
+  --shadow-sm: 0 2px 8px rgba(255, 182, 193, 0.15);
+  --shadow-md: 0 4px 12px rgba(255, 182, 193, 0.2);
+  --shadow-lg: 0 8px 24px rgba(255, 182, 193, 0.25);
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 350ms ease;
+
+  /* Layout */
+  --container-max-width: 1200px;
+  --content-padding: 2rem;
+}
